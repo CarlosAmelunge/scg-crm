@@ -230,15 +230,18 @@
   }); });
 
   // ---- Boot ----
-  DB.getEmail().then(function(email){
-    if(!email){ show('view-login'); return; }
-    DB.isMember().then(function(m){
-      if(!m){ $('d-email').textContent=email; show('view-denied'); return; }
-      $('who').textContent=email;
-      DB.isAdmin().then(function(a){ isAdmin=a; $('tab-config').classList.toggle('hidden',!a); });
-      loadAll().then(function(){ show('view-app'); });
+  function boot(){
+    return DB.getEmail().then(function(email){
+      if(!email){ show('view-login'); return; }
+      return DB.isMember().then(function(m){
+        if(!m){ $('d-email').textContent=email; show('view-denied'); return; }
+        $('who').textContent=email;
+        return DB.isAdmin().then(function(a){ isAdmin=a; $('tab-config').classList.toggle('hidden',!a); })
+          .then(function(){ return loadAll(); }).then(function(){ show('view-app'); });
+      });
     });
-  });
+  }
+  boot();
 
   function loadAll(){
     return Promise.all([DB.cfgList('crm_verticals'),DB.cfgList('crm_stages'),DB.cfgList('crm_categorias'),DB.cfgList('crm_comisionistas'),DB.cfgList('crm_tags'),DB.listContacts(),DB.listContactTags()])
