@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es-BO">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SCG · CRM</title>
+<script src="assets/tailwind.js"></script>
+<link rel="stylesheet" href="assets/brand.css" />
+<style>
+  html{scroll-behavior:smooth;}
+  body{font-family:var(--scg-sans);color:var(--scg-palido);background:var(--scg-verde-oscuro);
+    background-image:url('assets/brand/pattern-vertical.svg');background-size:520px auto;background-repeat:repeat;background-attachment:fixed;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.serif{font-family:var(--scg-serif);}
+  .label{font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:.64rem;color:#8aa897;}
+  .panel{background:rgba(35,50,48,.82);border:1px solid rgba(183,215,194,.14);backdrop-filter:blur(8px);}
+  .view:not(.active){display:none !important;}
+  .sub:not(.active){display:none;}
+  .inp{width:100%;border-radius:.6rem;padding:.5rem .7rem;background:#11201F;border:1px solid rgba(183,215,194,.25);color:#DEE3C3;font-size:.9rem;}
+  .inp:focus{outline:none;border-color:#B7D7C2;}
+  input::placeholder{color:#6f8a7c;}
+  .btn{border-radius:.6rem;padding:.5rem .9rem;font-weight:600;cursor:pointer;transition:all .15s;font-size:.85rem;}
+  .btn-primary{background:var(--scg-sage);color:var(--scg-verde-oscuro);} .btn-primary:hover{background:#cfe6d8;}
+  .btn-ghost{border:1px solid rgba(183,215,194,.3);color:var(--scg-palido);} .btn-ghost:hover{background:rgba(183,215,194,.12);}
+  .btn-danger{border:1px solid rgba(255,100,99,.4);color:var(--scg-coral);} .btn-danger:hover{background:rgba(255,100,99,.12);}
+  .tab{padding:.5rem .9rem;border-radius:.6rem;cursor:pointer;font-weight:600;font-size:.85rem;color:#8aa897;}
+  .tab.active{background:rgba(183,215,194,.14);color:var(--scg-palido);}
+  .chip{font-size:.66rem;border-radius:9999px;padding:.12rem .55rem;display:inline-block;}
+  .kcol{min-width:230px;width:230px;}
+  .kcard{background:var(--scg-verde-medio);border:1px solid rgba(183,215,194,.14);border-radius:.7rem;padding:.7rem;margin-bottom:.55rem;cursor:grab;}
+  .kcard:active{cursor:grabbing;}
+  table{border-collapse:collapse;width:100%;} th,td{text-align:left;}
+  .modal-bg{position:fixed;inset:0;z-index:50;background:rgba(8,14,13,.7);display:none;}
+  .modal-bg.open{display:flex;}
+  ::-webkit-scrollbar{height:10px;width:10px;} ::-webkit-scrollbar-thumb{background:rgba(183,215,194,.2);border-radius:6px;}
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- LOGIN -->
+<section id="view-login" class="view active min-h-screen flex items-center justify-center px-5 py-12">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8"><img src="assets/brand/logo-blanco.svg" alt="SCG" class="h-12 mx-auto mb-2" /><p class="label">CRM · Uso interno</p></div>
+    <div class="panel rounded-2xl p-8">
+      <h1 class="text-3xl mb-1">Acceso staff</h1>
+      <p class="text-sm mb-6" style="color:#8aa897">Ingresá tu usuario y contraseña.</p>
+      <form id="login-form" autocomplete="off">
+        <label class="label block mb-2">Usuario</label>
+        <input id="l-user" type="text" autocapitalize="none" required placeholder="usuario" class="inp" />
+        <label class="label block mb-2 mt-4">Contraseña</label>
+        <input id="l-pass" type="password" required placeholder="••••••••" class="inp" />
+        <p id="l-msg" class="hidden mt-3 text-sm rounded-lg px-3 py-2"></p>
+        <button class="btn btn-primary w-full mt-5">Ingresar</button>
+      </form>
+      <p id="l-mock" class="hidden text-xs mt-4" style="color:#6f8a7c"></p>
+    </div>
+  </div>
+</section>
+
+<!-- DENEGADO -->
+<section id="view-denied" class="view min-h-screen flex items-center justify-center px-5">
+  <div class="panel rounded-2xl p-8 max-w-md text-center">
+    <h1 class="text-2xl mb-2">Sin acceso</h1>
+    <p class="text-sm mb-6" style="color:#8aa897"><span id="d-email" class="font-semibold" style="color:var(--scg-palido)"></span> no es parte del staff del CRM.</p>
+    <button id="d-logout" class="btn btn-ghost">Cerrar sesión</button>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="view-app" class="view">
+  <header class="border-b" style="border-color:rgba(183,215,194,.14)">
+    <div class="max-w-7xl mx-auto px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+      <div class="flex items-center gap-3"><img src="assets/brand/logo-blanco.svg" alt="SCG" class="h-8" /><span class="label">CRM</span></div>
+      <nav class="flex items-center gap-1">
+        <span class="tab active" data-sub="contactos">Contactos</span>
+        <span class="tab" data-sub="pipeline">Pipeline</span>
+        <span class="tab" data-sub="tareas">Tareas</span>
+        <span class="tab hidden" id="tab-config" data-sub="config">Config</span>
+      </nav>
+      <div class="flex items-center gap-3"><span id="who" class="text-sm" style="color:#8aa897"></span><button id="logout" class="btn btn-ghost">Salir</button></div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-5 py-6">
+    <!-- CONTACTOS -->
+    <div id="sub-contactos" class="sub active">
+      <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 class="text-2xl">Contactos</h2>
+        <div class="flex gap-2"><button id="c-book" class="btn btn-ghost">Compartir mi cartera</button><button id="c-new" class="btn btn-primary">+ Nuevo contacto</button></div>
+      </div>
+      <div class="flex gap-2 mb-4 flex-wrap">
+        <input id="f-buscar" placeholder="Buscar nombre/email/empresa…" class="inp" style="max-width:260px" />
+        <select id="f-vertical" class="inp" style="max-width:200px"><option value="">Todas las verticales</option></select>
+        <select id="f-stage" class="inp" style="max-width:180px"><option value="">Todas las etapas</option></select>
+        <select id="f-estado" class="inp" style="max-width:150px"><option value="">Todo estado</option><option value="abierto">Abierto</option><option value="ganado">Ganado</option><option value="perdido">Perdido</option></select>
+      </div>
+      <div class="panel rounded-2xl p-4 overflow-x-auto">
+        <table class="text-sm">
+          <thead><tr class="label" style="border-bottom:1px solid rgba(183,215,194,.18)">
+            <th class="py-2 pr-3">Nombre</th><th class="py-2 pr-3">Vertical</th><th class="py-2 pr-3">Etapa</th>
+            <th class="py-2 pr-3">Categoría</th><th class="py-2 pr-3">Comisionista</th><th class="py-2 pr-3 text-right">Valor</th><th class="py-2 pr-3">Tags</th>
+          </tr></thead>
+          <tbody id="c-body"></tbody>
+        </table>
+        <p id="c-empty" class="hidden text-sm py-4" style="color:#8aa897">Sin contactos.</p>
+      </div>
+    </div>
+
+    <!-- PIPELINE -->
+    <div id="sub-pipeline" class="sub">
+      <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 class="text-2xl">Pipeline</h2>
+        <select id="p-vertical" class="inp" style="max-width:220px"><option value="">Todas las verticales</option></select>
+      </div>
+      <div id="kanban" class="flex gap-3 overflow-x-auto pb-3"></div>
+    </div>
+
+    <!-- TAREAS -->
+    <div id="sub-tareas" class="sub">
+      <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <h2 class="text-2xl">Tareas</h2>
+        <label class="text-sm flex items-center gap-2" style="color:#8aa897"><input type="checkbox" id="t-solo-pend" checked /> Solo pendientes</label>
+      </div>
+      <div class="panel rounded-2xl p-4"><div id="t-list"></div><p id="t-empty" class="hidden text-sm py-3" style="color:#8aa897">Sin tareas.</p></div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="sub-config" class="sub">
+      <h2 class="text-2xl mb-4">Configuración</h2>
+      <div id="config-grid" class="grid md:grid-cols-2 gap-5"></div>
+    </div>
+  </main>
+</section>
+
+<!-- MODAL FICHA -->
+<div id="modal" class="modal-bg items-center justify-center px-4">
+  <div class="panel rounded-2xl p-6 w-full max-w-3xl max-h-[94vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="m-title" class="text-2xl">Contacto</h3>
+      <div class="flex gap-2"><button id="m-del" class="btn btn-danger hidden">Borrar</button><button id="m-close" class="btn btn-ghost">✕</button></div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-5">
+      <!-- datos -->
+      <div>
+        <form id="m-form" class="grid grid-cols-2 gap-3">
+          <input type="hidden" id="m-id" />
+          <div class="col-span-2"><label class="label block mb-1">Nombre *</label><input id="m-nombre" required class="inp" /></div>
+          <div><label class="label block mb-1">Email</label><input id="m-email" class="inp" /></div>
+          <div><label class="label block mb-1">Teléfono</label><input id="m-tel" class="inp" /></div>
+          <div class="col-span-2"><label class="label block mb-1">Empresa</label><input id="m-empresa" class="inp" /></div>
+          <div><label class="label block mb-1">Vertical</label><select id="m-vertical" class="inp"></select></div>
+          <div><label class="label block mb-1">Etapa</label><select id="m-stage" class="inp"></select></div>
+          <div><label class="label block mb-1">Categoría</label><select id="m-categoria" class="inp"></select></div>
+          <div><label class="label block mb-1">Comisionista</label><select id="m-comis" class="inp"></select></div>
+          <div><label class="label block mb-1">Estado</label><select id="m-estado" class="inp"><option value="abierto">Abierto</option><option value="ganado">Ganado</option><option value="perdido">Perdido</option></select></div>
+          <div><label class="label block mb-1">Valor estimado (USD)</label><input id="m-valor" type="number" step="0.01" class="inp" /></div>
+          <div class="col-span-2"><label class="label block mb-1">Responsable (owner)</label><input id="m-owner" class="inp" placeholder="email del responsable" /></div>
+          <div class="col-span-2"><label class="label block mb-1">Nota</label><textarea id="m-nota" rows="2" class="inp"></textarea></div>
+          <div class="col-span-2"><label class="label block mb-1">Tags</label><div id="m-tags" class="flex flex-wrap gap-2"></div></div>
+          <div class="col-span-2" id="m-portal" style="display:none"></div>
+          <p id="m-msg" class="col-span-2 hidden text-sm rounded-lg px-3 py-2"></p>
+          <div class="col-span-2 flex justify-end gap-2"><button type="button" id="m-cancel" class="btn btn-ghost">Cancelar</button><button class="btn btn-primary">Guardar</button></div>
+        </form>
+      </div>
+      <!-- actividades + tareas -->
+      <div id="m-side">
+        <h4 class="text-lg mb-2">Interacciones</h4>
+        <div class="flex gap-2 mb-2">
+          <select id="act-tipo" class="inp" style="max-width:130px"><option value="nota">Nota</option><option value="llamada">Llamada</option><option value="reunion">Reunión</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option></select>
+          <input id="act-desc" class="inp" placeholder="Descripción…" />
+          <button id="act-add" class="btn btn-primary whitespace-nowrap">+</button>
+        </div>
+        <div id="act-list" class="mb-5"></div>
+        <h4 class="text-lg mb-2">Tareas</h4>
+        <div class="flex gap-2 mb-2">
+          <input id="tk-tit" class="inp" placeholder="Nueva tarea…" />
+          <input id="tk-due" type="date" class="inp" style="max-width:150px" />
+          <button id="tk-add" class="btn btn-primary whitespace-nowrap">+</button>
+        </div>
+        <div id="tk-list"></div>
+        <h4 class="text-lg mb-2 mt-5">Compartir contacto</h4>
+        <div class="flex gap-2 mb-2"><input id="sh-email" class="inp" placeholder="invitar por email/usuario…" /><button id="sh-add" class="btn btn-primary whitespace-nowrap">+</button></div>
+        <div id="sh-list"></div>
+        <p id="m-side-hint" class="text-xs mt-3" style="color:#6f8a7c">Guardá el contacto para registrar interacciones, tareas y compartir.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: compartir mi cartera -->
+<div id="modal-book" class="modal-bg items-center justify-center px-4">
+  <div class="panel rounded-2xl p-6 w-full max-w-md">
+    <div class="flex items-center justify-between mb-3"><h3 class="text-xl">Compartir mi cartera</h3><button id="bk-close" class="btn btn-ghost">✕</button></div>
+    <p class="text-sm mb-3" style="color:#8aa897">Quien agregues acá verá <b>todos</b> tus contactos (los que sos dueño).</p>
+    <div class="flex gap-2 mb-3"><input id="bk-email" class="inp" placeholder="email o usuario a invitar" /><button id="bk-add" class="btn btn-primary">+</button></div>
+    <div id="bk-list"></div>
+  </div>
+</div>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/crm-db.js"></script>
+<script>
+(function(){
+  "use strict";
+  var DB=window.CRM_DB, $=function(id){return document.getElementById(id);};
+  var ST={verticals:[],stages:[],categorias:[],comisionistas:[],tags:[],members:[],contacts:[],ctags:[]};
+  var isAdmin=false, current=null; // current contact in modal
+
+  function byId(arr,id){ for(var i=0;i<arr.length;i++) if(arr[i].id===id) return arr[i]; return null; }
+  function nameOf(arr,id,field){ var x=byId(arr,id); return x?x[field||'nombre']:'—'; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fmtUSD(n){ return n==null||n===''?'—':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+  function fmtFecha(d){ if(!d)return'—'; var x=new Date(String(d).slice(0,10)+'T00:00:00'); return x.toLocaleDateString('es-BO',{day:'numeric',month:'short',year:'numeric'}); }
+  function flash(el,t,okk){ el.textContent=t; el.classList.remove('hidden'); el.style.background=okk?'rgba(183,215,194,.12)':'rgba(255,100,99,.12)'; el.style.color=okk?'var(--scg-sage)':'var(--scg-coral)'; }
+
+  if(DB.MOCK){ var n=$('l-mock'); n.classList.remove('hidden'); n.innerHTML="Modo demo. Entrá con <code>?mock=1&as=admin</code> (o <code>as=manager</code>)."; }
+
+  // ---- Login ----
+  $('login-form').addEventListener('submit',function(e){ e.preventDefault();
+    DB.signIn($('l-user').value.trim(),$('l-pass').value).then(boot).catch(function(err){ flash($('l-msg'),'Error: '+(err.message||err),false); });
+  });
+  function logout(){ DB.signOut().then(function(){ location.href=location.pathname+(DB.MOCK?'?mock=1&as='+(new URLSearchParams(location.search).get('as')||'admin'):''); }); }
+  $('logout').addEventListener('click',logout); $('d-logout').addEventListener('click',logout);
+
+  function show(id){ document.querySelectorAll('section.view').forEach(function(v){v.classList.remove('active');}); $(id).classList.add('active'); }
+  document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');}); t.classList.add('active');
+    document.querySelectorAll('.sub').forEach(function(s){s.classList.remove('active');}); $('sub-'+t.dataset.sub).classList.add('active');
+    if(t.dataset.sub==='pipeline') renderKanban(); if(t.dataset.sub==='tareas') renderTareas(); if(t.dataset.sub==='config') renderConfig();
+  }); });
+
+  // ---- Boot ----
+  DB.getEmail().then(function(email){
+    if(!email){ show('view-login'); return; }
+    DB.isMember().then(function(m){
+      if(!m){ $('d-email').textContent=email; show('view-denied'); return; }
+      $('who').textContent=email;
+      DB.isAdmin().then(function(a){ isAdmin=a; $('tab-config').classList.toggle('hidden',!a); });
+      loadAll().then(function(){ show('view-app'); });
+    });
+  });
+
+  function loadAll(){
+    return Promise.all([DB.cfgList('crm_verticals'),DB.cfgList('crm_stages'),DB.cfgList('crm_categorias'),DB.cfgList('crm_comisionistas'),DB.cfgList('crm_tags'),DB.listContacts(),DB.listContactTags()])
+    .then(function(r){
+      ST.verticals=r[0]; ST.stages=r[1].sort(function(a,b){return (a.orden||0)-(b.orden||0);}); ST.categorias=r[2]; ST.comisionistas=r[3]; ST.tags=r[4]; ST.contacts=r[5]; ST.ctags=r[6];
+      fillSelect($('f-vertical'),ST.verticals,'Todas las verticales'); fillSelect($('p-vertical'),ST.verticals,'Todas las verticales');
+      fillSelect($('f-stage'),ST.stages,'Todas las etapas');
+      renderContactos();
+    });
+  }
+  function fillSelect(sel,arr,placeholder,blankLabel){
+    sel.innerHTML=(placeholder!=null?'<option value="">'+placeholder+'</option>':(blankLabel?'<option value="">'+blankLabel+'</option>':''))
+      + arr.map(function(x){return '<option value="'+x.id+'">'+esc(x.nombre)+'</option>';}).join('');
+  }
+  function tagsOf(contactId){ return ST.ctags.filter(function(t){return t.contact_id===contactId;}).map(function(t){return byId(ST.tags,t.tag_id);}).filter(Boolean); }
+  function tagChips(contactId){ return tagsOf(contactId).map(function(t){return '<span class="chip" style="background:'+t.color+'22;color:'+t.color+'">'+esc(t.nombre)+'</span>';}).join(' '); }
+
+  // ---- Contactos ----
+  ['f-buscar','f-vertical','f-stage','f-estado'].forEach(function(id){ $(id).addEventListener('input',renderContactos); });
+  function filteredContacts(){
+    var q=$('f-buscar').value.toLowerCase(), v=$('f-vertical').value, s=$('f-stage').value, e=$('f-estado').value;
+    return ST.contacts.filter(function(c){
+      if(v && String(c.vertical_id)!==v) return false;
+      if(s && String(c.stage_id)!==s) return false;
+      if(e && c.estado!==e) return false;
+      if(q){ var hay=(c.nombre+' '+(c.email||'')+' '+(c.empresa||'')).toLowerCase(); if(hay.indexOf(q)<0) return false; }
+      return true;
+    });
+  }
+  function renderContactos(){
+    var rows=filteredContacts(); $('c-empty').classList.toggle('hidden',rows.length>0);
+    $('c-body').innerHTML=rows.map(function(c){
+      return '<tr class="cursor-pointer hover:bg-[rgba(183,215,194,.06)]" data-id="'+c.id+'" style="border-bottom:1px solid rgba(183,215,194,.08)">'+
+        '<td class="py-2.5 pr-3 font-medium">'+esc(c.nombre)+(c.empresa?'<div class="text-xs" style="color:#8aa897">'+esc(c.empresa)+'</div>':'')+'</td>'+
+        '<td class="py-2.5 pr-3">'+esc(nameOf(ST.verticals,c.vertical_id))+'</td>'+
+        '<td class="py-2.5 pr-3">'+esc(nameOf(ST.stages,c.stage_id))+'</td>'+
+        '<td class="py-2.5 pr-3">'+esc(nameOf(ST.categorias,c.categoria_id))+'</td>'+
+        '<td class="py-2.5 pr-3">'+esc(nameOf(ST.comisionistas,c.comisionista_id))+'</td>'+
+        '<td class="py-2.5 pr-3 text-right">'+fmtUSD(c.valor_estimado)+'</td>'+
+        '<td class="py-2.5 pr-3">'+tagChips(c.id)+'</td></tr>';
+    }).join('');
+    $('c-body').querySelectorAll('tr').forEach(function(tr){ tr.addEventListener('click',function(){ openFicha(byId(ST.contacts,tr.dataset.id)); }); });
+  }
+  $('c-new').addEventListener('click',function(){ openFicha(null); });
+
+  // ---- Pipeline (Kanban) ----
+  $('p-vertical').addEventListener('change',renderKanban);
+  function renderKanban(){
+    var v=$('p-vertical').value;
+    var cont=ST.contacts.filter(function(c){return !v||String(c.vertical_id)===v;});
+    $('kanban').innerHTML=ST.stages.map(function(st){
+      var cards=cont.filter(function(c){return c.stage_id===st.id;});
+      var total=cards.reduce(function(m,c){return m+(Number(c.valor_estimado)||0);},0);
+      return '<div class="kcol panel rounded-xl p-3" data-stage="'+st.id+'">'+
+        '<div class="flex items-center justify-between mb-2"><span class="font-semibold text-sm">'+esc(st.nombre)+'</span><span class="label">'+cards.length+'</span></div>'+
+        '<div class="text-xs mb-2" style="color:#8aa897">'+fmtUSD(total)+'</div>'+
+        '<div class="kbody" data-stage="'+st.id+'" style="min-height:40px">'+cards.map(function(c){
+          return '<div class="kcard" draggable="true" data-id="'+c.id+'">'+
+            '<div class="font-medium text-sm">'+esc(c.nombre)+'</div>'+
+            '<div class="text-xs mt-0.5" style="color:#8aa897">'+esc(nameOf(ST.verticals,c.vertical_id))+' · '+fmtUSD(c.valor_estimado)+'</div>'+
+            (tagChips(c.id)?'<div class="mt-1">'+tagChips(c.id)+'</div>':'')+'</div>';
+        }).join('')+'</div></div>';
+    }).join('');
+    // drag handlers
+    $('kanban').querySelectorAll('.kcard').forEach(function(card){
+      card.addEventListener('dragstart',function(e){ e.dataTransfer.setData('text/plain',card.dataset.id); });
+      card.addEventListener('click',function(){ openFicha(byId(ST.contacts,card.dataset.id)); });
+    });
+    $('kanban').querySelectorAll('.kbody').forEach(function(zone){
+      zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.style.background='rgba(183,215,194,.06)'; });
+      zone.addEventListener('dragleave',function(){ zone.style.background=''; });
+      zone.addEventListener('drop',function(e){ e.preventDefault(); zone.style.background='';
+        var id=e.dataTransfer.getData('text/plain'); var stageId=Number(zone.dataset.stage);
+        var c=byId(ST.contacts,id); if(!c||c.stage_id===stageId) return;
+        c.stage_id=stageId; DB.moveStage(id,stageId).then(function(){ renderKanban(); renderContactos(); });
+      });
+    });
+  }
+
+  // ---- Tareas ----
+  $('t-solo-pend').addEventListener('change',renderTareas);
+  function renderTareas(){
+    DB.listTasks().then(function(tasks){
+      if($('t-solo-pend').checked) tasks=tasks.filter(function(t){return !t.done;});
+      $('t-empty').classList.toggle('hidden',tasks.length>0);
+      var today=new Date().toISOString().slice(0,10);
+      $('t-list').innerHTML=tasks.map(function(t){
+        var c=byId(ST.contacts,t.contact_id); var venc=t.due_date&&t.due_date<today&&!t.done;
+        return '<div class="flex items-center gap-3 py-2.5" style="border-bottom:1px solid rgba(183,215,194,.08)">'+
+          '<input type="checkbox" data-id="'+t.id+'" class="tk-chk" '+(t.done?'checked':'')+' />'+
+          '<div class="flex-1"><div class="text-sm '+(t.done?'line-through opacity-50':'')+'">'+esc(t.titulo)+'</div>'+
+          '<div class="text-xs" style="color:#8aa897">'+(c?esc(c.nombre)+' · ':'')+'<span style="color:'+(venc?'var(--scg-coral)':'#8aa897')+'">'+(t.due_date?fmtFecha(t.due_date):'sin fecha')+'</span></div></div>'+
+          '<button class="btn btn-danger tk-del" data-id="'+t.id+'" style="padding:.25rem .6rem">✕</button></div>';
+      }).join('');
+      $('t-list').querySelectorAll('.tk-chk').forEach(function(ch){ ch.addEventListener('change',function(){ DB.saveTask({id:ch.dataset.id,done:ch.checked}).then(renderTareas); }); });
+      $('t-list').querySelectorAll('.tk-del').forEach(function(b){ b.addEventListener('click',function(){ DB.deleteTask(b.dataset.id).then(renderTareas); }); });
+    });
+  }
+
+  // ---- Ficha (modal) ----
+  var modal=$('modal');
+  function openFicha(c){
+    current=c; $('m-msg').classList.add('hidden');
+    $('m-title').textContent=c?'Editar contacto':'Nuevo contacto';
+    $('m-del').classList.toggle('hidden',!c);
+    fillSelect($('m-vertical'),ST.verticals,null,'—'); fillSelect($('m-stage'),ST.stages,null,'—');
+    fillSelect($('m-categoria'),ST.categorias,null,'—'); fillSelect($('m-comis'),ST.comisionistas,null,'—');
+    $('m-id').value=c?c.id:''; $('m-nombre').value=c?c.nombre||'':''; $('m-email').value=c?c.email||'':'';
+    $('m-tel').value=c?c.telefono||'':''; $('m-empresa').value=c?c.empresa||'':'';
+    $('m-vertical').value=c&&c.vertical_id?c.vertical_id:''; $('m-stage').value=c&&c.stage_id?c.stage_id:'';
+    $('m-categoria').value=c&&c.categoria_id?c.categoria_id:''; $('m-comis').value=c&&c.comisionista_id?c.comisionista_id:'';
+    $('m-estado').value=c?c.estado||'abierto':'abierto'; $('m-valor').value=c&&c.valor_estimado!=null?c.valor_estimado:'';
+    $('m-owner').value=c?c.owner_email||'':''; $('m-nota').value=c?c.nota||'':'';
+    pickedTags=c?tagsOf(c.id).map(function(t){return t.id;}):[]; paintTags();
+    // link al portal
+    var pl=$('m-portal');
+    if(c&&c.portal_client_id){ pl.style.display='block'; pl.innerHTML='<span class="chip" style="background:rgba(183,215,194,.15);color:var(--scg-sage)">Inversionista del portal ✓</span>'; }
+    else pl.style.display='none';
+    // side (timeline/tareas) solo si existe
+    if(!c) $('m-owner').value=$('who').textContent||'';
+    $('m-side').style.opacity=c?'1':'.45'; $('m-side-hint').style.display=c?'none':'block';
+    if(c){ renderActivities(c.id); renderContactTasks(c.id); renderShares(c.id); } else { $('act-list').innerHTML=''; $('tk-list').innerHTML=''; $('sh-list').innerHTML=''; }
+    modal.classList.add('open');
+  }
+  function closeModal(){ modal.classList.remove('open'); current=null; }
+  $('m-close').onclick=closeModal; $('m-cancel').onclick=closeModal;
+
+  var pickedTags=[];
+  function paintTags(){
+    $('m-tags').innerHTML=ST.tags.map(function(t){
+      var on=pickedTags.indexOf(t.id)>=0;
+      return '<span class="chip tagpick" data-id="'+t.id+'" style="cursor:pointer;border:1px solid '+t.color+';background:'+(on?t.color+'33':'transparent')+';color:'+t.color+'">'+esc(t.nombre)+'</span>';
+    }).join('')+(ST.tags.length?'':'<span class="text-xs" style="color:#6f8a7c">Sin tags (creá en Config)</span>');
+    $('m-tags').querySelectorAll('.tagpick').forEach(function(ch){ ch.addEventListener('click',function(){
+      var id=Number(ch.dataset.id), i=pickedTags.indexOf(id); if(i>=0)pickedTags.splice(i,1); else pickedTags.push(id); paintTags();
+    }); });
+  }
+
+  $('m-form').addEventListener('submit',function(e){ e.preventDefault();
+    var num=function(v){return v===''||v==null?null:Number(v);};
+    var o={ id:$('m-id').value||undefined, nombre:$('m-nombre').value.trim(), email:$('m-email').value.trim()||null,
+      telefono:$('m-tel').value.trim()||null, empresa:$('m-empresa').value.trim()||null,
+      vertical_id:$('m-vertical').value?Number($('m-vertical').value):null, stage_id:$('m-stage').value?Number($('m-stage').value):null,
+      categoria_id:$('m-categoria').value?Number($('m-categoria').value):null, comisionista_id:$('m-comis').value?Number($('m-comis').value):null,
+      estado:$('m-estado').value, valor_estimado:num($('m-valor').value), owner_email:$('m-owner').value.trim()||null, nota:$('m-nota').value.trim()||null };
+    if(!o.nombre){ flash($('m-msg'),'El nombre es obligatorio.',false); return; }
+    DB.saveContact(o).then(function(saved){
+      var row=Array.isArray(saved)?saved[0]:saved; var cid=(row&&row.id)||o.id;
+      return DB.setContactTags(cid,pickedTags).then(function(){ return cid; });
+    }).then(function(){ return loadAll(); }).then(function(){ closeModal(); renderKanban(); })
+    .catch(function(err){ flash($('m-msg'),'Error: '+(err.message||err),false); });
+  });
+  $('m-del').addEventListener('click',function(){ if(!current)return; if(!confirm('¿Borrar '+current.nombre+'?'))return;
+    DB.deleteContact(current.id).then(function(){return loadAll();}).then(function(){ closeModal(); renderKanban(); }); });
+
+  // actividades
+  $('act-add').addEventListener('click',function(){ if(!current)return; var d=$('act-desc').value.trim(); if(!d)return;
+    DB.addActivity({contact_id:current.id,tipo:$('act-tipo').value,descripcion:d,fecha:new Date().toISOString().slice(0,10),author_email:$('who').textContent||null})
+    .then(function(){ $('act-desc').value=''; renderActivities(current.id); }); });
+  function renderActivities(cid){ DB.listActivities(cid).then(function(acts){
+    $('act-list').innerHTML=acts.length?acts.map(function(a){
+      return '<div class="py-2" style="border-bottom:1px solid rgba(183,215,194,.08)"><div class="flex justify-between"><span class="chip" style="background:rgba(183,215,194,.12);color:var(--scg-sage)">'+esc(a.tipo)+'</span><span class="text-xs" style="color:#8aa897">'+fmtFecha(a.fecha)+' <a class="act-del" data-id="'+a.id+'" style="color:var(--scg-coral);cursor:pointer">✕</a></span></div><div class="text-sm mt-1">'+esc(a.descripcion)+'</div></div>';
+    }).join(''):'<p class="text-xs py-2" style="color:#6f8a7c">Sin interacciones aún.</p>';
+    $('act-list').querySelectorAll('.act-del').forEach(function(b){ b.addEventListener('click',function(){ DB.deleteActivity(b.dataset.id).then(function(){renderActivities(cid);}); }); });
+  }); }
+  // tareas del contacto
+  $('tk-add').addEventListener('click',function(){ if(!current)return; var t=$('tk-tit').value.trim(); if(!t)return;
+    DB.saveTask({contact_id:current.id,titulo:t,due_date:$('tk-due').value||null,assigned_to_email:$('who').textContent||null,done:false})
+    .then(function(){ $('tk-tit').value=''; $('tk-due').value=''; renderContactTasks(current.id); }); });
+  function renderContactTasks(cid){ DB.listTasks().then(function(all){ var tasks=all.filter(function(t){return t.contact_id===cid;});
+    $('tk-list').innerHTML=tasks.length?tasks.map(function(t){
+      return '<div class="flex items-center gap-2 py-1.5"><input type="checkbox" class="ctk" data-id="'+t.id+'" '+(t.done?'checked':'')+'/><span class="text-sm flex-1 '+(t.done?'line-through opacity-50':'')+'">'+esc(t.titulo)+'</span><span class="text-xs" style="color:#8aa897">'+(t.due_date?fmtFecha(t.due_date):'')+'</span></div>';
+    }).join(''):'<p class="text-xs py-1" style="color:#6f8a7c">Sin tareas.</p>';
+    $('tk-list').querySelectorAll('.ctk').forEach(function(ch){ ch.addEventListener('change',function(){ DB.saveTask({id:ch.dataset.id,done:ch.checked}).then(function(){renderContactTasks(cid);}); }); });
+  }); }
+  // compartir contacto puntual
+  $('sh-add').addEventListener('click',function(){ if(!current)return; var e=$('sh-email').value.trim(); if(!e)return; if(e.indexOf('@')<0)e=e+'@portal.santacruzconsulting.co';
+    DB.addShare(current.id,e).then(function(){ $('sh-email').value=''; renderShares(current.id); }).catch(function(err){alert(err.message||err);}); });
+  function renderShares(cid){ DB.listShares(cid).then(function(sh){
+    $('sh-list').innerHTML=sh.length?sh.map(function(x){return '<div class="flex items-center justify-between py-1"><span class="text-xs">'+esc(x.email)+'</span><button class="btn btn-danger sh-del" data-email="'+esc(x.email)+'" style="padding:.15rem .5rem">✕</button></div>';}).join(''):'<p class="text-xs py-1" style="color:#6f8a7c">No compartido con nadie.</p>';
+    $('sh-list').querySelectorAll('.sh-del').forEach(function(b){ b.addEventListener('click',function(){ DB.removeShare(cid,b.dataset.email).then(function(){renderShares(cid);}); }); });
+  }); }
+  // compartir cartera completa
+  var modalBook=$('modal-book');
+  $('c-book').addEventListener('click',function(){ renderBook(); modalBook.classList.add('open'); });
+  $('bk-close').addEventListener('click',function(){ modalBook.classList.remove('open'); });
+  $('bk-add').addEventListener('click',function(){ var e=$('bk-email').value.trim(); if(!e)return; if(e.indexOf('@')<0)e=e+'@portal.santacruzconsulting.co';
+    DB.addBookAccess($('who').textContent,e).then(function(){ $('bk-email').value=''; renderBook(); }).catch(function(err){alert(err.message||err);}); });
+  function renderBook(){ DB.listBookAccess().then(function(all){ var me=($('who').textContent||'').toLowerCase(); var mine=all.filter(function(b){return (b.owner_email||'').toLowerCase()===me;});
+    $('bk-list').innerHTML=mine.length?mine.map(function(b){return '<div class="flex items-center justify-between py-1"><span class="text-sm">'+esc(b.email)+'</span><button class="btn btn-danger bk-del" data-email="'+esc(b.email)+'" style="padding:.15rem .5rem">✕</button></div>';}).join(''):'<p class="text-xs py-1" style="color:#6f8a7c">Nadie tiene acceso a tu cartera.</p>';
+    $('bk-list').querySelectorAll('.bk-del').forEach(function(b){ b.addEventListener('click',function(){ DB.removeBookAccess($('who').textContent,b.dataset.email).then(renderBook); }); });
+  }); }
+  // ---- Config (admin) ----
+  function renderConfig(){
+    if(!isAdmin){ $('config-grid').innerHTML='<p class="text-sm" style="color:#8aa897">Solo administradores.</p>'; return; }
+    var cfgs=[['Verticales','crm_verticals',ST.verticals],['Categorías','crm_categorias',ST.categorias],['Comisionistas','crm_comisionistas',ST.comisionistas],['Etapas','crm_stages',ST.stages],['Tags','crm_tags',ST.tags]];
+    var html=cfgs.map(function(cf){
+      return '<div class="panel rounded-2xl p-5"><h3 class="text-lg mb-3">'+cf[0]+'</h3><div class="cfg-list" data-table="'+cf[1]+'">'+
+        cf[2].map(function(x){return '<div class="flex items-center gap-2 py-1.5"><span class="flex-1 text-sm">'+esc(x.nombre)+'</span><button class="btn btn-danger cfg-del" data-table="'+cf[1]+'" data-id="'+x.id+'" style="padding:.2rem .5rem">✕</button></div>';}).join('')+
+        '</div><form class="cfg-add flex gap-2 mt-2" data-table="'+cf[1]+'"><input class="inp" placeholder="Agregar…" required /><button class="btn btn-primary">+</button></form></div>';
+    }).join('');
+    // Staff
+    html+='<div class="panel rounded-2xl p-5 md:col-span-2"><h3 class="text-lg mb-3">Staff (acceso al CRM)</h3><div id="staff-list"></div>'+
+      '<form id="staff-add" class="flex gap-2 mt-2 flex-wrap"><input id="st-email" class="inp" style="max-width:260px" placeholder="email o usuario" required /><select id="st-role" class="inp" style="max-width:140px"><option value="manager">Manager</option><option value="admin">Admin</option></select><button class="btn btn-primary">Agregar</button></form>'+
+      '<p class="text-xs mt-2" style="color:#6f8a7c">El acceso usa cuentas de Supabase existentes. Para staff nuevo, crealo en Supabase (Auth) con ese email.</p></div>';
+    $('config-grid').innerHTML=html;
+    // bind cfg add/del
+    $('config-grid').querySelectorAll('.cfg-add').forEach(function(f){ f.addEventListener('submit',function(e){ e.preventDefault();
+      var inp=f.querySelector('input'); DB.cfgSave(f.dataset.table,{nombre:inp.value.trim()}).then(function(){ return loadAll(); }).then(renderConfig); }); });
+    $('config-grid').querySelectorAll('.cfg-del').forEach(function(b){ b.addEventListener('click',function(){ DB.cfgDelete(b.dataset.table,Number(b.dataset.id)).then(function(){return loadAll();}).then(renderConfig).catch(function(e){alert(e.message||e);}); }); });
+    // staff
+    DB.listMembers().then(function(ms){ ST.members=ms;
+      $('staff-list').innerHTML=ms.map(function(m){ return '<div class="flex items-center gap-2 py-1.5" style="border-bottom:1px solid rgba(183,215,194,.08)"><span class="flex-1 text-sm">'+esc(m.email)+'</span><span class="chip" style="background:rgba(183,215,194,.12);color:var(--scg-sage)">'+m.role+'</span><button class="btn btn-danger st-del" data-email="'+esc(m.email)+'" style="padding:.2rem .5rem">✕</button></div>'; }).join('');
+      $('staff-list').querySelectorAll('.st-del').forEach(function(b){ b.addEventListener('click',function(){ if(!confirm('¿Quitar '+b.dataset.email+'?'))return; DB.deleteMember(b.dataset.email).then(renderConfig).catch(function(e){alert(e.message||e);}); }); });
+    });
+    $('staff-add').addEventListener('submit',function(e){ e.preventDefault(); var em=$('st-email').value.trim().toLowerCase(); if(em.indexOf('@')<0) em=em+'@portal.santacruzconsulting.co';
+      DB.saveMember({email:em,role:$('st-role').value,active:true}).then(renderConfig).catch(function(er){alert(er.message||er);}); });
+  }
+})();
+</script>
+</body>
+</html>
